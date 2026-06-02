@@ -1,0 +1,32 @@
+.page-header h1 {
+  margin: 0 0 0.35rem;
+}
+
+.page-header p {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+}
+
+.page .ticker-form {
+  margin-bottom: 1.5rem;
+}
+
+.error-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--negative) 15%, transparent);
+  color: var(--negative);
+  margin: 0 0 1rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+}
