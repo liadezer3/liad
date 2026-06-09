@@ -87,6 +87,7 @@ class JobListing(BaseModel):
     distance_miles: float | None
     posted_at: str
     summary: str
+    description: str
 
 
 class JobGroup(BaseModel):

@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import asin, cos, radians, sin, sqrt
+from datetime import UTC, date, datetime
+import html
+import re
+from typing import Any, Callable
+
+import httpx
 
 from app.schemas import JobGroup, JobListing, JobSearchRequest, JobSearchResult
 
 
 SOURCES = [
-    "LinkedIn Jobs",
-    "Indeed",
-    "Glassdoor",
-    "ZipRecruiter",
-    "Wellfound",
+    "Remotive",
+    "Arbeitnow",
     "RemoteOK",
 ]
+
+HTTP_HEADERS = {"User-Agent": "JobScannerAgent/1.0 (+https://example.local)"}
+MAX_RESULTS_PER_SOURCE = 50
 
 
 @dataclass(frozen=True)
@@ -22,8 +27,6 @@ class RawJob:
     title: str
     company: str
     location: str
-    latitude: float | None
-    longitude: float | None
     source: str
     source_url: str
     salary_min: int | None
@@ -33,152 +36,18 @@ class RawJob:
     remote: bool
     posted_at: str
     summary: str
+    description: str
 
 
-RAW_JOBS = [
-    RawJob(
-        id="linkedin-senior-ai-engineer-nyc",
-        title="Senior AI Engineer",
-        company="Northstar Analytics",
-        location="New York, NY",
-        latitude=40.7128,
-        longitude=-74.0060,
-        source="LinkedIn Jobs",
-        source_url="https://www.linkedin.com/jobs/search/?keywords=Senior%20AI%20Engineer",
-        salary_min=185000,
-        salary_max=245000,
-        rating=4.7,
-        job_type="Full-time",
-        remote=False,
-        posted_at="2026-06-01",
-        summary="Build production retrieval and ranking systems for financial research workflows.",
-    ),
-    RawJob(
-        id="indeed-platform-engineer-nyc",
-        title="Platform Engineer",
-        company="Hudson Cloud Labs",
-        location="New York, NY",
-        latitude=40.7128,
-        longitude=-74.0060,
-        source="Indeed",
-        source_url="https://www.indeed.com/jobs?q=Platform+Engineer&l=New+York%2C+NY",
-        salary_min=155000,
-        salary_max=210000,
-        rating=4.3,
-        job_type="Full-time",
-        remote=False,
-        posted_at="2026-05-29",
-        summary="Own Kubernetes, observability, and developer platform automation.",
-    ),
-    RawJob(
-        id="glassdoor-product-designer-nyc",
-        title="Product Designer",
-        company="MetroHealth Digital",
-        location="New York, NY",
-        latitude=40.7128,
-        longitude=-74.0060,
-        source="Glassdoor",
-        source_url="https://www.glassdoor.com/Job/new-york-product-designer-jobs-SRCH_IL.0,8_IC1132348_KO9,25.htm",
-        salary_min=130000,
-        salary_max=175000,
-        rating=4.5,
-        job_type="Full-time",
-        remote=False,
-        posted_at="2026-05-31",
-        summary="Design patient-facing digital experiences and research-backed product flows.",
-    ),
-    RawJob(
-        id="ziprecruiter-data-engineer-austin",
-        title="Data Engineer",
-        company="Lone Star Mobility",
-        location="Austin, TX",
-        latitude=30.2672,
-        longitude=-97.7431,
-        source="ZipRecruiter",
-        source_url="https://www.ziprecruiter.com/jobs-search?search=Data+Engineer&location=Austin%2C+TX",
-        salary_min=145000,
-        salary_max=195000,
-        rating=4.4,
-        job_type="Full-time",
-        remote=False,
-        posted_at="2026-05-28",
-        summary="Model fleet telemetry and build reliable analytics pipelines.",
-    ),
-    RawJob(
-        id="wellfound-full-stack-sf",
-        title="Full Stack Engineer",
-        company="SeedDeck",
-        location="San Francisco, CA",
-        latitude=37.7749,
-        longitude=-122.4194,
-        source="Wellfound",
-        source_url="https://wellfound.com/jobs",
-        salary_min=170000,
-        salary_max=230000,
-        rating=4.6,
-        job_type="Full-time",
-        remote=False,
-        posted_at="2026-05-30",
-        summary="Ship TypeScript and Python features across an early-stage fundraising platform.",
-    ),
-    RawJob(
-        id="remoteok-ml-platform-remote",
-        title="Machine Learning Platform Engineer",
-        company="Orbit Remote",
-        location="Remote - United States",
-        latitude=None,
-        longitude=None,
-        source="RemoteOK",
-        source_url="https://remoteok.com/remote-machine-learning-jobs",
-        salary_min=165000,
-        salary_max=225000,
-        rating=4.8,
-        job_type="Remote",
-        remote=True,
-        posted_at="2026-06-02",
-        summary="Scale model deployment, feature stores, and monitoring across remote-first teams.",
-    ),
-    RawJob(
-        id="linkedin-frontend-chicago",
-        title="Frontend Engineer",
-        company="Great Lakes Commerce",
-        location="Chicago, IL",
-        latitude=41.8781,
-        longitude=-87.6298,
-        source="LinkedIn Jobs",
-        source_url="https://www.linkedin.com/jobs/search/?keywords=Frontend%20Engineer&location=Chicago",
-        salary_min=125000,
-        salary_max=168000,
-        rating=4.1,
-        job_type="Hybrid",
-        remote=False,
-        posted_at="2026-05-27",
-        summary="Modernize React commerce surfaces and shared design-system components.",
-    ),
-    RawJob(
-        id="indeed-devops-atlanta",
-        title="DevOps Engineer",
-        company="Peachtree Robotics",
-        location="Atlanta, GA",
-        latitude=33.7490,
-        longitude=-84.3880,
-        source="Indeed",
-        source_url="https://www.indeed.com/jobs?q=DevOps+Engineer&l=Atlanta%2C+GA",
-        salary_min=135000,
-        salary_max=182000,
-        rating=4.2,
-        job_type="Hybrid",
-        remote=False,
-        posted_at="2026-05-26",
-        summary="Automate CI/CD, cloud infrastructure, and factory telemetry deployments.",
-    ),
-]
+Provider = Callable[[httpx.Client, str], list[RawJob]]
+PROVIDERS: list[Provider] = []
 
 
 def scan_jobs(body: JobSearchRequest) -> JobSearchResult:
     query = body.query.strip()
     location_label = _clean_location_label(body)
-    listings = [_to_listing(job, body) for job in RAW_JOBS if _matches(job, body, query)]
+    raw_jobs = _fetch_live_jobs(query)
+    listings = [_to_listing(job) for job in raw_jobs if _matches(job, body, query)]
     listings.sort(key=_job_sort_key)
     groups = _group_jobs(listings)
 
@@ -191,14 +60,122 @@ def scan_jobs(body: JobSearchRequest) -> JobSearchResult:
     )
 
 
+def _fetch_live_jobs(query: str) -> list[RawJob]:
+    jobs: list[RawJob] = []
+    with httpx.Client(headers=HTTP_HEADERS, timeout=15, follow_redirects=True) as client:
+        for provider in PROVIDERS:
+            try:
+                jobs.extend(provider(client, query))
+            except httpx.HTTPError:
+                continue
+    return _dedupe_jobs(jobs)
+
+
+def _fetch_remotive(client: httpx.Client, query: str) -> list[RawJob]:
+    response = client.get(
+        "https://remotive.com/api/remote-jobs",
+        params={"search": query, "limit": MAX_RESULTS_PER_SOURCE},
+    )
+    response.raise_for_status()
+    jobs = response.json().get("jobs", [])
+
+    results = []
+    for item in jobs:
+        description = _clean_text(item.get("description", ""))
+        salary_min, salary_max = _parse_salary_range(item.get("salary", ""))
+        posted_at = _parse_iso_date(item.get("publication_date"))
+        results.append(
+            RawJob(
+                id=f"remotive-{item.get('id')}",
+                title=_clean_text(item.get("title") or "Untitled role"),
+                company=_clean_text(item.get("company_name") or "Unknown company"),
+                location=_clean_text(item.get("candidate_required_location") or "Remote"),
+                source="Remotive",
+                source_url=item.get("url") or "https://remotive.com/remote-jobs",
+                salary_min=salary_min,
+                salary_max=salary_max,
+                rating=_rate_job(salary_min, salary_max, posted_at, True, bool(description)),
+                job_type=_clean_text(item.get("job_type") or "Remote"),
+                remote=True,
+                posted_at=posted_at,
+                summary=_summarize(description),
+                description=description,
+            )
+        )
+    return results
+
+
+def _fetch_arbeitnow(client: httpx.Client, query: str) -> list[RawJob]:
+    response = client.get("https://www.arbeitnow.com/api/job-board-api")
+    response.raise_for_status()
+    jobs = response.json().get("data", [])[:MAX_RESULTS_PER_SOURCE]
+
+    results = []
+    for item in jobs:
+        description = _clean_text(item.get("description", ""))
+        salary_min, salary_max = _parse_salary_range(description)
+        posted_at = _parse_unix_date(item.get("created_at"))
+        job_types = item.get("job_types") or []
+        remote = bool(item.get("remote"))
+        results.append(
+            RawJob(
+                id=f"arbeitnow-{item.get('slug')}",
+                title=_clean_text(item.get("title") or "Untitled role"),
+                company=_clean_text(item.get("company_name") or "Unknown company"),
+                location=_clean_text(item.get("location") or ("Remote" if remote else "Not listed")),
+                source="Arbeitnow",
+                source_url=item.get("url") or "https://www.arbeitnow.com/jobs",
+                salary_min=salary_min,
+                salary_max=salary_max,
+                rating=_rate_job(salary_min, salary_max, posted_at, remote, bool(description)),
+                job_type=", ".join(job_types) if job_types else ("Remote" if remote else "Full-time"),
+                remote=remote,
+                posted_at=posted_at,
+                summary=_summarize(description),
+                description=description,
+            )
+        )
+    return results
+
+
+def _fetch_remoteok(client: httpx.Client, query: str) -> list[RawJob]:
+    response = client.get("https://remoteok.com/api")
+    response.raise_for_status()
+    payload = response.json()
+    jobs = [item for item in payload if isinstance(item, dict) and item.get("id")][:MAX_RESULTS_PER_SOURCE]
+
+    results = []
+    for item in jobs:
+        description = _clean_text(item.get("description") or item.get("company_logo") or "")
+        salary_min = _safe_int(item.get("salary_min"))
+        salary_max = _safe_int(item.get("salary_max"))
+        posted_at = _parse_iso_date(item.get("date"))
+        results.append(
+            RawJob(
+                id=f"remoteok-{item.get('id')}",
+                title=_clean_text(item.get("position") or "Untitled role"),
+                company=_clean_text(item.get("company") or "Unknown company"),
+                location=_clean_text(item.get("location") or "Remote"),
+                source="RemoteOK",
+                source_url=item.get("url") or "https://remoteok.com",
+                salary_min=salary_min,
+                salary_max=salary_max,
+                rating=_rate_job(salary_min, salary_max, posted_at, True, bool(description)),
+                job_type="Remote",
+                remote=True,
+                posted_at=posted_at,
+                summary=_summarize(description or "Remote role listed on RemoteOK."),
+                description=description or "Open the source link to view the full RemoteOK description.",
+            )
+        )
+    return results
+
+
 def _matches(job: RawJob, body: JobSearchRequest, query: str) -> bool:
     if not _matches_query(job, query):
         return False
     if job.remote and body.include_remote:
         return True
-    if body.latitude is not None and body.longitude is not None:
-        distance = _distance_miles(body.latitude, body.longitude, job.latitude, job.longitude)
-        return distance is not None and distance <= body.radius_miles
     if body.location_label:
         return _matches_location_label(job.location, body.location_label)
     return True
@@ -208,7 +185,7 @@ def _matches_query(job: RawJob, query: str) -> bool:
     terms = [term for term in query.lower().replace(",", " ").split() if term]
     if not terms:
         return True
-    haystack = f"{job.title} {job.company} {job.summary}".lower()
+    haystack = f"{job.title} {job.company} {job.summary} {job.description}".lower()
     return all(term in haystack for term in terms)
 
 
@@ -226,11 +203,7 @@ def _clean_location_label(body: JobSearchRequest) -> str:
     return "All configured markets"
 
 
-def _to_listing(job: RawJob, body: JobSearchRequest) -> JobListing:
-    distance = None
-    if body.latitude is not None and body.longitude is not None and job.latitude and job.longitude:
-        distance = round(_distance_miles(body.latitude, body.longitude, job.latitude, job.longitude) or 0, 1)
-
+def _to_listing(job: RawJob) -> JobListing:
     return JobListing(
         id=job.id,
         title=job.title,
@@ -243,9 +216,10 @@ def _to_listing(job: RawJob, body: JobSearchRequest) -> JobListing:
         rating=job.rating,
         job_type=job.job_type,
         remote=job.remote,
-        distance_miles=distance,
+        distance_miles=None,
         posted_at=job.posted_at,
         summary=job.summary,
+        description=job.description,
     )
 
 
@@ -276,17 +250,110 @@ def _job_sort_key(job: JobListing) -> tuple[int, int, float, str]:
     return (-(job.salary_max or 0), -(job.salary_min or 0), -job.rating, job.title)
 
 
-def _distance_miles(
-    origin_latitude: float,
-    origin_longitude: float,
-    job_latitude: float | None,
-    job_longitude: float | None,
-) -> float | None:
-    if job_latitude is None or job_longitude is None:
-        return None
+def _dedupe_jobs(jobs: list[RawJob]) -> list[RawJob]:
+    seen: set[tuple[str, str, str]] = set()
+    unique = []
+    for job in jobs:
+        key = (job.title.lower(), job.company.lower(), job.source_url)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(job)
+    return unique
 
-    lat1, lon1, lat2, lon2 = map(radians, [origin_latitude, origin_longitude, job_latitude, job_longitude])
-    delta_lat = lat2 - lat1
-    delta_lon = lon2 - lon1
-    a = sin(delta_lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(delta_lon / 2) ** 2
-    return 3958.8 * 2 * asin(sqrt(a))
+
+def _clean_text(value: Any) -> str:
+    text = html.unescape(str(value or ""))
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _summarize(description: str) -> str:
+    text = _clean_text(description)
+    if len(text) <= 220:
+        return text or "Open the source link to view the full posting details."
+    return f"{text[:217].rstrip()}..."
+
+
+def _parse_salary_range(text: Any) -> tuple[int | None, int | None]:
+    value = str(text or "")
+    if not value:
+        return None, None
+
+    numbers = []
+    for match in re.finditer(r"(?<!\w)(\d{2,3}(?:,\d{3})?|\d{2,3}k)(?!\w)", value, re.IGNORECASE):
+        raw = match.group(1).replace(",", "").lower()
+        amount = int(float(raw[:-1]) * 1000) if raw.endswith("k") else int(raw)
+        if amount < 1000:
+            amount *= 1000
+        if amount >= 20000:
+            numbers.append(amount)
+
+    if not numbers:
+        return None, None
+    if len(numbers) == 1:
+        return numbers[0], numbers[0]
+    return min(numbers[:2]), max(numbers[:2])
+
+
+def _parse_iso_date(value: Any) -> str:
+    if not value:
+        return date.today().isoformat()
+    try:
+        normalized = str(value).replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized).date().isoformat()
+    except ValueError:
+        return date.today().isoformat()
+
+
+def _parse_unix_date(value: Any) -> str:
+    try:
+        return datetime.fromtimestamp(int(value), tz=UTC).date().isoformat()
+    except (TypeError, ValueError, OSError):
+        return date.today().isoformat()
+
+
+def _safe_int(value: Any) -> int | None:
+    try:
+        amount = int(value)
+    except (TypeError, ValueError):
+        return None
+    return amount if amount > 0 else None
+
+
+def _rate_job(
+    salary_min: int | None,
+    salary_max: int | None,
+    posted_at: str,
+    remote: bool,
+    has_description: bool,
+) -> float:
+    salary = salary_max or salary_min or 0
+    score = 3.0
+    if salary >= 200000:
+        score += 1.0
+    elif salary >= 140000:
+        score += 0.7
+    elif salary >= 90000:
+        score += 0.4
+    if _days_old(posted_at) <= 14:
+        score += 0.5
+    elif _days_old(posted_at) <= 45:
+        score += 0.25
+    if remote:
+        score += 0.2
+    if has_description:
+        score += 0.2
+    return round(min(score, 5.0), 1)
+
+
+def _days_old(posted_at: str) -> int:
+    try:
+        posted = date.fromisoformat(posted_at)
+    except ValueError:
+        return 999
+    return max((date.today() - posted).days, 0)
+
+
+PROVIDERS.extend([_fetch_remotive, _fetch_arbeitnow, _fetch_remoteok])

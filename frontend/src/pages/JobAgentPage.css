@@ -177,7 +177,17 @@
 }
 
 .job-card h3 {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin: 0 0 0.35rem;
+}
+
+.job-card h3 span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
 }
 
 .job-card p {
@@ -185,7 +195,24 @@
   margin: 0 0 0.75rem;
 }
 
-.job-card a {
+.job-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.job-actions button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.55rem 0.8rem;
+  white-space: nowrap;
+}
+
+.job-actions a {
   color: var(--accent);
   font-weight: 700;
   text-decoration: none;
@@ -204,6 +231,35 @@
   color: var(--text);
   font-size: 0.8rem;
   padding: 0.25rem 0.55rem;
+}
+
+.job-details {
+  border-top: 1px solid var(--border);
+  grid-column: 1 / -1;
+  padding-top: 1rem;
+}
+
+.job-details dl {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin: 0 0 1rem;
+}
+
+.job-details dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.job-details dd {
+  margin: 0.15rem 0 0;
+}
+
+.job-details p {
+  line-height: 1.65;
+  margin: 0;
 }
 
 .empty-state p {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { scanJobs } from '../api/client'
-import type { JobSearchResult } from '../types'
+import type { JobListing, JobSearchResult } from '../types'
 import './PageShared.css'
 import './JobAgentPage.css'
 
@@ -29,6 +29,14 @@ function formatDistance(distance: number | null) {
   return distance == null ? null : `${distance.toFixed(1)} mi away`
 }
 
+function formatPostedDate(postedAt: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(`${postedAt}T00:00:00`))
+}
+
 export default function JobAgentPage() {
   const [query, setQuery] = useState('engineer')
   const [locationLabel, setLocationLabel] = useState('')
@@ -40,6 +48,7 @@ export default function JobAgentPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<JobSearchResult | null>(null)
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
 
   function requestLocation(): Promise<Coordinates | null> {
     if (!navigator.geolocation) {
@@ -96,6 +105,7 @@ export default function JobAgentPage() {
         include_remote: includeRemote,
       })
       setResult(data)
+      setExpandedJobId(null)
     } catch (e) {
       setResult(null)
       setError(e instanceof Error ? e.message : 'Job scan failed')
@@ -199,18 +209,28 @@ export default function JobAgentPage() {
                   {group.jobs.map((job) => (
                     <div className="job-card" key={job.id}>
                       <div>
-                        <h3>{job.company}</h3>
+                        <h3>
+                          {job.company}
+                          <span>{formatPostedDate(job.posted_at)}</span>
+                        </h3>
                         <p>{job.summary}</p>
                         <div className="job-meta">
                           <span>{formatSalary(job.salary_min, job.salary_max)}</span>
                           <span>{job.rating.toFixed(1)} rating</span>
                           <span>{job.job_type}</span>
+                          <span>{job.source}</span>
                           {formatDistance(job.distance_miles) && <span>{formatDistance(job.distance_miles)}</span>}
                         </div>
                       </div>
-                      <a href={job.source_url} target="_blank" rel="noreferrer">
-                        Open on {job.source}
-                      </a>
+                      <div className="job-actions">
+                        <button type="button" onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}>
+                          {expandedJobId === job.id ? 'Hide details' : 'View details'}
+                        </button>
+                        <a href={job.source_url} target="_blank" rel="noreferrer">
+                          Open posting
+                        </a>
+                      </div>
+                      {expandedJobId === job.id && <JobDetails job={job} />}
                     </div>
                   ))}
                 </div>
@@ -219,6 +239,32 @@ export default function JobAgentPage() {
           )}
         </section>
       )}
+    </div>
+  )
+}
+
+function JobDetails({ job }: { job: JobListing }) {
+  return (
+    <div className="job-details">
+      <dl>
+        <div>
+          <dt>Title</dt>
+          <dd>{job.title}</dd>
+        </div>
+        <div>
+          <dt>Company</dt>
+          <dd>{job.company}</dd>
+        </div>
+        <div>
+          <dt>Location</dt>
+          <dd>{job.location}</dd>
+        </div>
+        <div>
+          <dt>Posted</dt>
+          <dd>{formatPostedDate(job.posted_at)}</dd>
+        </div>
+      </dl>
+      <p>{job.description}</p>
     </div>
   )
 }

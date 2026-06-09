@@ -64,6 +64,7 @@ export interface JobListing {
   distance_miles: number | null
   posted_at: string
   summary: string
+  description: string
 }
 
 export interface JobGroup {
