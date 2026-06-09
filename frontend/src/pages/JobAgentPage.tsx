@@ -80,16 +80,18 @@ export default function JobAgentPage() {
     setError(null)
 
     try {
+      const typedLocation = locationLabel.trim()
       let activeCoords = coords
-      if (!activeCoords && !locationLabel.trim()) {
+      if (!activeCoords && !typedLocation) {
         activeCoords = await requestLocation()
       }
+      const useCoordinates = !typedLocation ? activeCoords : null
 
       const data = await scanJobs({
         query,
-        latitude: activeCoords?.latitude,
-        longitude: activeCoords?.longitude,
-        location_label: activeCoords ? 'Current location' : locationLabel.trim() || undefined,
+        latitude: useCoordinates?.latitude,
+        longitude: useCoordinates?.longitude,
+        location_label: useCoordinates ? 'Current location' : typedLocation || undefined,
         radius_miles: radiusMiles,
         include_remote: includeRemote,
       })
