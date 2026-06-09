@@ -56,6 +56,22 @@ def sample_jobs(query: str):
             summary="Scale model deployment and monitoring.",
             description="Scale model deployment, feature stores, and model monitoring for a remote-first team.",
         ),
+        RawJob(
+            id="stale-1",
+            title="Legacy Engineer",
+            company="Old Jobs Inc",
+            location="New York, NY",
+            source="Remotive",
+            source_url="https://remotive.com/remote-jobs/software-dev/legacy-engineer",
+            salary_min=250000,
+            salary_max=300000,
+            rating=5.0,
+            job_type="Full-time",
+            remote=False,
+            posted_at="2024-05-01",
+            summary="An old listing that should not be returned.",
+            description="An old listing that should not be returned.",
+        ),
     ]
 
 
@@ -74,6 +90,7 @@ def test_scan_jobs_filters_by_location_and_sorts_salary_high_to_low(monkeypatch)
 
     assert result.total_results == 2
     assert salaries == sorted(salaries, reverse=True)
+    assert all(group.title != "Legacy Engineer" for group in result.groups)
     assert result.groups[0].title == "Senior AI Engineer"
     assert result.groups[0].location == "New York, NY"
     assert result.groups[0].jobs[0].description.startswith("Build production AI search")

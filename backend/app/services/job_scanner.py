@@ -19,6 +19,7 @@ SOURCES = [
 
 HTTP_HEADERS = {"User-Agent": "JobScannerAgent/1.0 (+https://example.local)"}
 MAX_RESULTS_PER_SOURCE = 50
+MAX_JOB_AGE_DAYS = 120
 
 
 @dataclass(frozen=True)
@@ -172,6 +173,8 @@ def _fetch_remoteok(client: httpx.Client, query: str) -> list[RawJob]:
 
 
 def _matches(job: RawJob, body: JobSearchRequest, query: str) -> bool:
+    if _days_old(job.posted_at) > MAX_JOB_AGE_DAYS:
+        return False
     if not _matches_query(job, query):
         return False
     if job.remote and body.include_remote:
