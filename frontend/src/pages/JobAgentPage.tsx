@@ -1,4 +1,5 @@
-import { FormEvent, useState } from 'react'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { scanJobs } from '../api/client'
 import type { JobSearchResult } from '../types'
 import './PageShared.css'
