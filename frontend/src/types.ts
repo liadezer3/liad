@@ -47,3 +47,37 @@ export interface DividendSafetyResult {
   ai_powered: boolean
   balance_sheet_highlights: Record<string, number[]>
 }
+
+export interface JobListing {
+  id: string
+  title: string
+  company: string
+  location: string
+  source: string
+  source_url: string
+  salary_min: number | null
+  salary_max: number | null
+  salary_currency: string
+  rating: number
+  job_type: string
+  remote: boolean
+  distance_miles: number | null
+  posted_at: string
+  summary: string
+}
+
+export interface JobGroup {
+  title: string
+  location: string
+  average_rating: number
+  highest_salary: number | null
+  jobs: JobListing[]
+}
+
+export interface JobSearchResult {
+  query: string
+  location_label: string
+  sources_scanned: string[]
+  total_results: number
+  groups: JobGroup[]
+}

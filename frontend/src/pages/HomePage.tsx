@@ -17,6 +17,11 @@ const features = [
     desc: 'AI-assisted balance sheet analysis scores dividend sustainability from 0–100.',
     to: '/safety',
   },
+  {
+    title: 'Job Scanner Agent',
+    desc: 'Request location permission and organize nearby jobs by salary, title, location, and rating.',
+    to: '/jobs',
+  },
 ]
 
 export default function HomePage() {
@@ -35,6 +40,9 @@ export default function HomePage() {
           </Link>
           <Link to="/valuation" className="btn secondary">
             Run valuation
+          </Link>
+          <Link to="/jobs" className="btn secondary">
+            Scan jobs
           </Link>
         </div>
       </section>

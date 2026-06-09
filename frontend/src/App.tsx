@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
+import JobAgentPage from './pages/JobAgentPage'
 import LookupPage from './pages/LookupPage'
 import SafetyPage from './pages/SafetyPage'
 import ValuationPage from './pages/ValuationPage'
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="lookup" element={<LookupPage />} />
           <Route path="valuation" element={<ValuationPage />} />
           <Route path="safety" element={<SafetyPage />} />
+          <Route path="jobs" element={<JobAgentPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

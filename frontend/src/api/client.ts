@@ -1,4 +1,4 @@
-import type { DCFResult, DDMResult, DividendSafetyResult, StockQuote } from '../types'
+import type { DCFResult, DDMResult, DividendSafetyResult, JobSearchResult, StockQuote } from '../types'
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -48,5 +48,19 @@ export function analyzeDividendSafety(ticker: string) {
   return request<DividendSafetyResult>('/api/analysis/dividend-safety', {
     method: 'POST',
     body: JSON.stringify({ ticker }),
+  })
+}
+
+export function scanJobs(body: {
+  query: string
+  latitude?: number
+  longitude?: number
+  location_label?: string
+  radius_miles: number
+  include_remote: boolean
+}) {
+  return request<JobSearchResult>('/api/agents/job-scanner', {
+    method: 'POST',
+    body: JSON.stringify(body),
   })
 }
