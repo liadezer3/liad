@@ -60,3 +60,47 @@ class DividendSafetyResult(BaseModel):
     factors: list[dict]
     ai_powered: bool
     balance_sheet_highlights: dict
+
+
+class JobSearchRequest(BaseModel):
+    query: str = Field("software engineer", min_length=1, max_length=120)
+    latitude: float | None = Field(None, ge=-90, le=90)
+    longitude: float | None = Field(None, ge=-180, le=180)
+    location_label: str | None = Field(None, max_length=120)
+    radius_miles: int = Field(50, ge=5, le=250)
+    include_remote: bool = True
+
+
+class JobListing(BaseModel):
+    id: str
+    title: str
+    company: str
+    location: str
+    source: str
+    source_url: str
+    salary_min: int | None
+    salary_max: int | None
+    salary_currency: str = "USD"
+    rating: float = Field(..., ge=0, le=5)
+    job_type: str
+    remote: bool
+    distance_miles: float | None
+    posted_at: str
+    summary: str
+    description: str
+
+
+class JobGroup(BaseModel):
+    title: str
+    location: str
+    average_rating: float
+    highest_salary: int | None
+    jobs: list[JobListing]
+
+
+class JobSearchResult(BaseModel):
+    query: str
+    location_label: str
+    sources_scanned: list[str]
+    total_results: int
+    groups: list[JobGroup]

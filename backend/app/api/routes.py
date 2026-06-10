@@ -9,9 +9,12 @@ from app.schemas import (
     DDMResult,
     DividendSafetyRequest,
     DividendSafetyResult,
+    JobSearchRequest,
+    JobSearchResult,
     StockQuote,
 )
 from app.services.dividend_safety import analyze_dividend_safety
+from app.services.job_scanner import scan_jobs
 from app.services.stock_data import fetch_financials_for_valuation, fetch_stock_details
 
 router = APIRouter(tags=["evaluator"])
@@ -110,5 +113,13 @@ def run_ddm(body: DDMRequest):
 def dividend_safety(body: DividendSafetyRequest):
     try:
         return analyze_dividend_safety(body.ticker)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/agents/job-scanner", response_model=JobSearchResult)
+def job_scanner(body: JobSearchRequest):
+    try:
+        return scan_jobs(body)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -26,6 +26,7 @@ The frontend never embeds valuation logic; the backend keeps algorithms separate
 | **Stock Lookup** | Dividend yield, payout ratio, P/E, 52-week range via Yahoo Finance |
 | **Valuation** | Discounted Cash Flow (DCF) and Gordon Growth Dividend Discount Model (DDM) |
 | **Dividend Safety** | AI analysis of balance sheet trends (OpenAI) or rule-based fallback |
+| **Job Scanner Agent** | Live public job-source search organized by salary, title, location, and rating |
 
 ## Quick start
 
@@ -62,6 +63,7 @@ Set `OPENAI_API_KEY` in `backend/.env`. Without it, safety analysis uses a trans
 - `POST /api/valuation/dcf` — DCF intrinsic value
 - `POST /api/valuation/ddm` — DDM fair value
 - `POST /api/analysis/dividend-safety` — safety score 0–100
+- `POST /api/agents/job-scanner` — organized job listings from live public job sources
 
 ## Tests
 
