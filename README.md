@@ -27,6 +27,7 @@ The frontend never embeds valuation logic; the backend keeps algorithms separate
 | **Valuation** | Discounted Cash Flow (DCF) and Gordon Growth Dividend Discount Model (DDM) |
 | **Dividend Safety** | AI analysis of balance sheet trends (OpenAI) or rule-based fallback |
 | **Job Scanner Agent** | Live public job-source search organized by salary, title, location, and rating |
+| **Music Player** | Stream SoundCloud playlists in a clean, ad-free interface (official SoundCloud Widget API) |
 
 ## Quick start
 

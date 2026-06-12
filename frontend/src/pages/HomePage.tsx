@@ -22,6 +22,11 @@ const features = [
     desc: 'Request location permission and organize nearby jobs by salary, title, location, and rating.',
     to: '/jobs',
   },
+  {
+    title: 'Music Player',
+    desc: 'Stream your SoundCloud playlists in a clean, ad-free interface with full playback controls.',
+    to: '/music',
+  },
 ]
 
 export default function HomePage() {

@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import JobAgentPage from './pages/JobAgentPage'
 import LookupPage from './pages/LookupPage'
+import MusicPlayerPage from './pages/MusicPlayerPage'
 import SafetyPage from './pages/SafetyPage'
 import ValuationPage from './pages/ValuationPage'
 
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="valuation" element={<ValuationPage />} />
           <Route path="safety" element={<SafetyPage />} />
           <Route path="jobs" element={<JobAgentPage />} />
+          <Route path="music" element={<MusicPlayerPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

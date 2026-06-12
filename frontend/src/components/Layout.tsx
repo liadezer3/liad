@@ -7,6 +7,7 @@ const nav = [
   { to: '/valuation', label: 'Valuation' },
   { to: '/safety', label: 'Dividend Safety' },
   { to: '/jobs', label: 'Job Scanner' },
+  { to: '/music', label: 'Music Player' },
 ]
 
 export default function Layout() {
