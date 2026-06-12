@@ -7,6 +7,11 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from app.config import settings
+from app.services.network import (
+    frontend_origin_from_request,
+    mobile_access_info,
+    resolve_redirect_uri,
+)
 from app.services.soundcloud import (
     SoundCloudClient,
     build_authorize_url,
@@ -61,6 +66,11 @@ def auth_status(request: Request) -> dict[str, Any]:
     }
 
 
+@router.get("/network-info")
+def network_info() -> dict[str, str | None]:
+    return mobile_access_info()
+
+
 @router.get("/auth/login")
 def login(request: Request) -> RedirectResponse:
     if not _configured():
@@ -69,17 +79,29 @@ def login(request: Request) -> RedirectResponse:
             detail="SoundCloud API credentials are not configured. Set SOUNDCLOUD_CLIENT_ID and SOUNDCLOUD_CLIENT_SECRET.",
         )
 
+    frontend_origin = frontend_origin_from_request(
+        request.headers.get("origin"),
+        request.headers.get("referer"),
+    )
+    try:
+        redirect_uri = resolve_redirect_uri(frontend_origin)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     verifier, challenge = generate_pkce_pair()
     state = secrets.token_urlsafe(24)
     request.session["oauth_state"] = state
     request.session["pkce_verifier"] = verifier
-    return RedirectResponse(build_authorize_url(state, challenge))
+    request.session["frontend_origin"] = frontend_origin
+    request.session["redirect_uri"] = redirect_uri
+    return RedirectResponse(build_authorize_url(state, challenge, redirect_uri))
 
 
 @router.get("/auth/callback")
 async def callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None):
+    frontend_origin = request.session.get("frontend_origin", settings.frontend_url)
     if error:
-        return RedirectResponse(f"{settings.frontend_url}/?auth_error={error}")
+        return RedirectResponse(f"{frontend_origin}/?auth_error={error}")
 
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing authorization code.")
@@ -92,11 +114,14 @@ async def callback(request: Request, code: str | None = None, state: str | None 
     if not verifier:
         raise HTTPException(status_code=400, detail="OAuth session expired.")
 
-    tokens = await exchange_code(code, verifier)
+    redirect_uri = request.session.get("redirect_uri", settings.soundcloud_redirect_uri)
+    tokens = await exchange_code(code, verifier, redirect_uri)
     request.session["access_token"] = tokens["access_token"]
     request.session["refresh_token"] = tokens.get("refresh_token")
     request.session["expires_at"] = token_expires_at(tokens.get("expires_in", 3600))
-    return RedirectResponse(f"{settings.frontend_url}/")
+    request.session.pop("frontend_origin", None)
+    request.session.pop("redirect_uri", None)
+    return RedirectResponse(f"{frontend_origin}/")
 
 
 @router.post("/auth/logout")

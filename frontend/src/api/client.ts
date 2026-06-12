@@ -1,5 +1,6 @@
 import type {
   AuthStatus,
+  NetworkInfo,
   PlaylistDetail,
   PlaylistSummary,
   StreamInfo,
@@ -31,6 +32,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  networkInfo: () => request<NetworkInfo>('/api/network-info'),
   authStatus: () => request<AuthStatus>('/api/auth/status'),
   me: () => request<UserProfile>('/api/me'),
   playlists: () => request<PlaylistSummary[]>('/api/playlists'),

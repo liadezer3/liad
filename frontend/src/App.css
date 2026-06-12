@@ -404,6 +404,38 @@
   font-weight: 600;
 }
 
+.mobile-hint {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-url {
+  display: inline-block;
+  margin: 0.75rem 0;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  background: rgba(255, 122, 69, 0.15);
+  color: #ffb38a;
+  font-weight: 600;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.mobile-note {
+  color: #a1a1aa;
+  font-size: 0.9rem;
+}
+
+.mobile-note code {
+  color: #d4d4d8;
+}
+
+.mobile-note.hebrew {
+  margin-top: 1rem;
+  color: #d4d4d8;
+}
+
 @media (max-width: 900px) {
   .main-layout {
     grid-template-columns: 1fr;

@@ -12,7 +12,9 @@ Wavebox uses the official [SoundCloud API](https://developers.soundcloud.com/doc
 
 1. Sign in at [soundcloud.com/you/apps](https://soundcloud.com/you/apps) (Artist Pro may be required).
 2. Create an app and note your **Client ID** and **Client Secret**.
-3. Set the redirect URI to: `http://127.0.0.1:8000/api/auth/callback`
+3. Add redirect URIs (desktop + phone on same Wi‑Fi):
+   - `http://127.0.0.1:5173/api/auth/callback`
+   - `http://YOUR_LAN_IP:5173/api/auth/callback` (replace with your computer's local IP)
 
 ### 2. Backend
 
@@ -38,6 +40,18 @@ npm run dev
 
 App: http://localhost:5173
 
+Vite exposes the app on your local network too — check the terminal for a `Network:` URL like `http://192.168.x.x:5173`.
+
+### Listen on your phone
+
+1. Connect your phone to the **same Wi‑Fi** as your computer.
+2. Start backend and frontend as above.
+3. On the login screen, Wavebox shows your phone URL (or use the `Network:` address from the Vite terminal).
+4. Register the phone redirect URI in SoundCloud, e.g. `http://192.168.1.42:5173/api/auth/callback`.
+5. Add the same URI to `SOUNDCLOUD_REDIRECT_URIS` in `backend/.env`.
+
+**בעברית:** אפשר להאזין מהטלפון — חבר את הטלפון לאותו Wi‑Fi, פתח את כתובת הרשת המקומית (למשל `http://192.168.x.x:5173`), והוסף את כתובת ה-redirect בהגדרות SoundCloud.
+
 ## Features
 
 - Sign in with SoundCloud (OAuth 2.1 + PKCE)
@@ -45,7 +59,7 @@ App: http://localhost:5173
 - Play full tracks with HLS streaming
 - Shuffle, repeat, and queue controls
 - No in-app advertisements or promotional banners
-- Mobile-friendly layout
+- Mobile-friendly layout — works on phone via local Wi‑Fi
 
 ## API endpoints
 

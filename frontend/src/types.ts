@@ -3,6 +3,12 @@ export interface AuthStatus {
   authenticated: boolean
 }
 
+export interface NetworkInfo {
+  lan_ip: string | null
+  mobile_url: string | null
+  redirect_uri_hint: string | null
+}
+
 export interface UserProfile {
   id: number
   username: string

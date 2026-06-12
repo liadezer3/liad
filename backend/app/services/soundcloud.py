@@ -25,10 +25,10 @@ def generate_pkce_pair() -> tuple[str, str]:
     return verifier, challenge
 
 
-def build_authorize_url(state: str, code_challenge: str) -> str:
+def build_authorize_url(state: str, code_challenge: str, redirect_uri: str | None = None) -> str:
     params = {
         "client_id": settings.soundcloud_client_id,
-        "redirect_uri": settings.soundcloud_redirect_uri,
+        "redirect_uri": redirect_uri or settings.soundcloud_redirect_uri,
         "response_type": "code",
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
@@ -79,7 +79,9 @@ class SoundCloudClient:
         return await self._request("GET", "/resolve", params={"url": url})
 
 
-async def exchange_code(code: str, code_verifier: str) -> dict[str, Any]:
+async def exchange_code(
+    code: str, code_verifier: str, redirect_uri: str | None = None
+) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
             f"{SOUNDCLOUD_AUTH}/oauth/token",
@@ -91,7 +93,7 @@ async def exchange_code(code: str, code_verifier: str) -> dict[str, Any]:
                 "grant_type": "authorization_code",
                 "client_id": settings.soundcloud_client_id,
                 "client_secret": settings.soundcloud_client_secret,
-                "redirect_uri": settings.soundcloud_redirect_uri,
+                "redirect_uri": redirect_uri or settings.soundcloud_redirect_uri,
                 "code_verifier": code_verifier,
                 "code": code,
             },
