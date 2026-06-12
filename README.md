@@ -1,49 +1,34 @@
-# Dividend Growth Stock Evaluator
+# Wavebox — SoundCloud Playlist Player
 
-AI-powered web app for evaluating dividend growth stocks: live ticker data, DCF/DDM valuation, and balance-sheet-driven dividend safety scoring.
+A clean, ad-free web player for your SoundCloud playlists. Connect your account, pick a playlist, and listen without banners or interruptions.
 
-## Project structure
+## How it works
 
-```
-├── frontend/                 # React (Vite) UI — components & pages only
-│   └── src/
-│       ├── components/       # Layout, StockCard, forms
-│       ├── pages/            # Home, Lookup, Valuation, Safety
-│       └── api/              # HTTP client to backend
-└── backend/                  # FastAPI + algorithmic core
-    └── app/
-        ├── algorithms/       # DCF, DDM (pure valuation math)
-        ├── services/         # Market data, AI prompt layer
-        └── api/              # REST routes
-```
+Wavebox uses the official [SoundCloud API](https://developers.soundcloud.com/docs/api/guide) with OAuth 2.1. Your playlists and tracks are fetched through the API, and audio is streamed directly via HLS — not through SoundCloud's embedded widget — so you get a distraction-free listening experience.
 
-The frontend never embeds valuation logic; the backend keeps algorithms separate from HTTP and data-fetching services.
+## Setup
 
-## Features
+### 1. Register a SoundCloud app
 
-| Page | Capability |
-|------|------------|
-| **Stock Lookup** | Dividend yield, payout ratio, P/E, 52-week range via Yahoo Finance |
-| **Valuation** | Discounted Cash Flow (DCF) and Gordon Growth Dividend Discount Model (DDM) |
-| **Dividend Safety** | AI analysis of balance sheet trends (OpenAI) or rule-based fallback |
-| **Job Scanner Agent** | Live public job-source search organized by salary, title, location, and rating |
+1. Sign in at [soundcloud.com/you/apps](https://soundcloud.com/you/apps) (Artist Pro may be required).
+2. Create an app and note your **Client ID** and **Client Secret**.
+3. Set the redirect URI to: `http://127.0.0.1:8000/api/auth/callback`
 
-## Quick start
-
-### Backend
+### 2. Backend
 
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # optional: set OPENAI_API_KEY for AI safety scores
+cp .env.example .env
+# Edit .env with your SoundCloud credentials
 chmod +x run.sh && ./run.sh
 ```
 
-API: http://127.0.0.1:8000 — docs at http://127.0.0.1:8000/docs
+API: http://127.0.0.1:8000
 
-### Frontend
+### 3. Frontend
 
 ```bash
 cd frontend
@@ -51,19 +36,27 @@ npm install
 npm run dev
 ```
 
-App: http://localhost:5173 (proxies `/api` to the backend)
+App: http://localhost:5173
 
-### Optional: AI dividend safety
+## Features
 
-Set `OPENAI_API_KEY` in `backend/.env`. Without it, safety analysis uses a transparent rule-based scorer over payout ratio, leverage, cash, retained earnings, and FCF coverage.
+- Sign in with SoundCloud (OAuth 2.1 + PKCE)
+- Browse your playlists
+- Play full tracks with HLS streaming
+- Shuffle, repeat, and queue controls
+- No in-app advertisements or promotional banners
+- Mobile-friendly layout
 
 ## API endpoints
 
-- `GET /api/stocks/{ticker}` — quote & dividend metrics
-- `POST /api/valuation/dcf` — DCF intrinsic value
-- `POST /api/valuation/ddm` — DDM fair value
-- `POST /api/analysis/dividend-safety` — safety score 0–100
-- `POST /api/agents/job-scanner` — organized job listings from live public job sources
+- `GET /api/auth/status` — configuration and auth state
+- `GET /api/auth/login` — start OAuth flow
+- `GET /api/auth/callback` — OAuth callback
+- `POST /api/auth/logout` — sign out
+- `GET /api/me` — authenticated user profile
+- `GET /api/playlists` — your playlists
+- `GET /api/playlists/{id}` — playlist with tracks
+- `GET /api/tracks/{id}/stream` — stream URL for a track
 
 ## Tests
 
@@ -71,6 +64,8 @@ Set `OPENAI_API_KEY` in `backend/.env`. Without it, safety analysis uses a trans
 cd backend && source .venv/bin/activate && pytest
 ```
 
-## Disclaimer
+## Notes
 
-For education and research only. Not financial advice. Market data accuracy depends on third-party providers.
+- Tracks marked as **preview** by SoundCloud will only play a short clip (this is a platform restriction, not an ad).
+- Some tracks may be blocked from off-platform streaming by the uploader or SoundCloud.
+- Respect SoundCloud's [Terms of Use](https://soundcloud.com/terms-of-use) and attribution requirements when sharing streams.

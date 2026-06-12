@@ -1,66 +1,44 @@
-import type { DCFResult, DDMResult, DividendSafetyResult, JobSearchResult, StockQuote } from '../types'
-
-const BASE = import.meta.env.VITE_API_URL ?? ''
+import type {
+  AuthStatus,
+  PlaylistDetail,
+  PlaylistSummary,
+  StreamInfo,
+  UserProfile,
+} from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const response = await fetch(path, {
+    credentials: 'include',
     ...init,
     headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
+      Accept: 'application/json',
+      ...(init?.headers ?? {}),
     },
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail))
+
+  if (!response.ok) {
+    let detail = response.statusText
+    try {
+      const body = await response.json()
+      detail = body.detail ?? detail
+    } catch {
+      // ignore
+    }
+    throw new Error(detail)
   }
-  return res.json()
+
+  return response.json() as Promise<T>
 }
 
-export function fetchStock(ticker: string) {
-  return request<StockQuote>(`/api/stocks/${encodeURIComponent(ticker.toUpperCase())}`)
+export const api = {
+  authStatus: () => request<AuthStatus>('/api/auth/status'),
+  me: () => request<UserProfile>('/api/me'),
+  playlists: () => request<PlaylistSummary[]>('/api/playlists'),
+  playlist: (id: number) => request<PlaylistDetail>(`/api/playlists/${id}`),
+  stream: (trackId: number) => request<StreamInfo>(`/api/tracks/${trackId}/stream`),
+  logout: () => request<{ status: string }>('/api/auth/logout', { method: 'POST' }),
 }
 
-export function runDCF(body: {
-  ticker: string
-  discount_rate: number
-  terminal_growth_rate: number
-  projection_years: number
-}) {
-  return request<DCFResult>('/api/valuation/dcf', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  })
-}
-
-export function runDDM(body: {
-  ticker: string
-  required_return: number
-  dividend_growth_rate?: number
-}) {
-  return request<DDMResult>('/api/valuation/ddm', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  })
-}
-
-export function analyzeDividendSafety(ticker: string) {
-  return request<DividendSafetyResult>('/api/analysis/dividend-safety', {
-    method: 'POST',
-    body: JSON.stringify({ ticker }),
-  })
-}
-
-export function scanJobs(body: {
-  query: string
-  latitude?: number
-  longitude?: number
-  location_label?: string
-  radius_miles: number
-  include_remote: boolean
-}) {
-  return request<JobSearchResult>('/api/agents/job-scanner', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  })
+export function loginUrl() {
+  return '/api/auth/login'
 }

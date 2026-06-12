@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
-from app.api.routes import router
+from app.api.soundcloud_routes import router
 from app.config import settings
 
 app = FastAPI(
-    title="Dividend Growth Stock Evaluator API",
-    description="Stock data, DCF/DDM valuation, and AI dividend safety analysis",
+    title="Wavebox — SoundCloud Playlist Player",
+    description="Ad-free SoundCloud playlist player powered by the SoundCloud API",
     version="1.0.0",
 )
 
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, https_only=False)
 
 app.include_router(router, prefix="/api")
 
